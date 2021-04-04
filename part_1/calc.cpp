@@ -1,8 +1,14 @@
+/**
+ * 1. 完善程序使之支持多位数字相加，例如“12+3”
+ * 2. 完善程序使之支持减法，例如“7-5”
+ * 3. 添加一个处理空白字符的函数，使程序能够处理这种情况“1 + 2”
+ */
 #include <iostream>
 #include <string>
 #include <exception>
 #include <stdexcept>
 #include <limits>
+#include <string>
 
 enum TokenType { INTEGER, PLUS, END };
 
@@ -32,14 +38,21 @@ class Interpreter {
 
     inline void throwError() { throw std::runtime_error("Error parsing input"); }
 
+    // 一个简单的词法分析器（lexer）
     Token getNextToken() {
         if (_pos >= _text.size()) {
             return Token(END);
         }
-        auto current_char = _text[_pos++];
-        if (isdigit(current_char)) {
-            return Token(INTEGER, current_char - '0');
-        } else if (current_char == '+') {
+        auto start_pos = _pos;
+        while (isdigit(_text[_pos])) {
+            ++_pos;
+        }
+
+        if (isdigit(_text[start_pos])) {
+            auto value = std::stoi(_text.substr(start_pos, _pos - start_pos));
+            return Token(INTEGER, value);
+        } else if (_text[start_pos] == '+') {
+            ++_pos;
             return Token(PLUS);
         }
         throwError();
@@ -47,6 +60,7 @@ class Interpreter {
         return Token(END);
     }
 
+    // 确保当前 token 的 type 为指定的 token_type，并且获取下一个 token
     void eatToken(const TokenType &token_type) {
         if (_current_token._type == token_type) {
             _current_token = getNextToken();
