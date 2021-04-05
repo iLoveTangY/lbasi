@@ -9,8 +9,9 @@
 #include <stdexcept>
 #include <limits>
 #include <string>
+#include <unordered_set>
 
-enum TokenType { INTEGER, PLUS, END };
+enum TokenType { INTEGER, PLUS, MINUS, END };
 
 class Token {
     friend std::ostream &operator<<(std::ostream &, const Token &);
@@ -38,8 +39,17 @@ class Interpreter {
 
     inline void throwError() { throw std::runtime_error("Error parsing input"); }
 
+    // 跳过空格
+    void eatWhitespace() {
+        // 跳过符号开头部分的空格
+        while (_pos < _text.size() && _text[_pos] == ' ') {
+            ++_pos;
+        }
+    }
+
     // 一个简单的词法分析器（lexer）
     Token getNextToken() {
+        eatWhitespace();
         if (_pos >= _text.size()) {
             return Token(END);
         }
@@ -54,6 +64,9 @@ class Interpreter {
         } else if (_text[start_pos] == '+') {
             ++_pos;
             return Token(PLUS);
+        } else if (_text[start_pos] == '-') {
+            ++_pos;
+            return Token(MINUS);
         }
         throwError();
         // should not be here
@@ -61,8 +74,8 @@ class Interpreter {
     }
 
     // 确保当前 token 的 type 为指定的 token_type，并且获取下一个 token
-    void eatToken(const TokenType &token_type) {
-        if (_current_token._type == token_type) {
+    void eatToken(const std::unordered_set<TokenType> &types) {
+        if (types.find(_current_token._type) != types.end()) {
             _current_token = getNextToken();
             return;
         }
@@ -77,22 +90,35 @@ class Interpreter {
         _current_token = getNextToken();
 
         auto left = _current_token;
-        eatToken(INTEGER);
+#ifdef DEBUG
+        std::cout << "left: " << left << std::endl;
+#endif
+        eatToken({INTEGER});
 
         auto op = _current_token;
-        eatToken(PLUS);
+#ifdef DEBUG
+        std::cout << "op: " << op << std::endl;
+#endif
+        eatToken({PLUS, MINUS});
 
         auto right = _current_token;
-        eatToken(INTEGER);
-
-        return left._value + right._value;
+#ifdef DEBUG
+        std::cout << "right: " << right << std::endl;
+#endif
+        eatToken({INTEGER});
+        if (op._type == PLUS) {
+            return left._value + right._value;
+        } else if (op._type == MINUS) {
+            return left._value - right._value;
+        }
+        return std::numeric_limits<int>::infinity();
     }
 };
 
 int main() {
     std::string text;
 
-    while (std::cin >> text) {
+    while (getline(std::cin, text)) {
         auto interpreter = Interpreter(text);
         std::cout << interpreter.expr() << std::endl;
     }
