@@ -8,12 +8,12 @@
 #include <exception>
 #include <stdexcept>
 #include <limits>
-#include <string>
 #include <unordered_set>
 
 // #define DEBUG
 
-enum TokenType { INTEGER, PLUS, MINUS, MUL, DIV, END };
+#define INVALID_CHAR 0
+enum TokenType { INTEGER, PLUS, MINUS, MUL, DIV, END, INVALID };
 
 class Token {
     friend std::ostream &operator<<(std::ostream &, const Token &);
@@ -25,7 +25,7 @@ class Token {
 
    public:
     Token() = default;
-    Token(TokenType type, int value = std::numeric_limits<int>::infinity()) : _type(type), _value(value) {}
+    explicit Token(TokenType type, int value = std::numeric_limits<int>::infinity()) : _type(type), _value(value) {}
 };
 
 std::ostream &operator<<(std::ostream &out, const Token &token) {
@@ -46,7 +46,7 @@ class Interpreter {
     inline void advance() {
         _pos++;
         if (_pos >= _text.size()) {
-            _current_char = NULL;
+            _current_char = INVALID_CHAR;
         } else {
             _current_char = _text[_pos];
         }
@@ -54,7 +54,7 @@ class Interpreter {
 
     // 跳过空白字符
     void skipWhitespace() {
-        while (_current_char != NULL && isspace(_current_char)) {
+        while (_current_char != INVALID_CHAR && isspace(_current_char)) {
             advance();
         }
     }
@@ -62,7 +62,7 @@ class Interpreter {
     // 从输入中获取一个整数（可能有多位）
     int integer() {
         std::string result = "";
-        while (_current_char != NULL && isdigit(_current_char)) {
+        while (_current_char != INVALID_CHAR && isdigit(_current_char)) {
             result.append({_current_char});
             advance();
         }
@@ -71,7 +71,7 @@ class Interpreter {
 
     // 一个简单的词法分析器（lexer）
     Token getNextToken() {
-        while (_current_char != NULL) {
+        while (_current_char != INVALID_CHAR) {
             if (isspace(_current_char)) {
                 skipWhitespace();
                 continue;
@@ -110,64 +110,35 @@ class Interpreter {
     }
 
    public:
-    Interpreter(std::string text) : _text(std::move(text)), _current_char(_text[0]) {}
+    explicit Interpreter(std::string text) : _text(std::move(text)), _current_char(_text[0]) {}
 
-    // 语法分析器（parser），仅能处理两个正整数的加减法
+    // 语法分析器（parser）仅能处理正整数的加减法
     double expr() {
-        _current_token = getNextToken();
-
-        auto left = _current_token;
-#ifdef DEBUG
-        std::cout << "left: " << left << std::endl;
-#endif
-        eatToken(INTEGER);
-
-        auto op = _current_token;
-#ifdef DEBUG
-        std::cout << "op: " << op << std::endl;
-#endif
-        switch (op._type)
-        {
-        case PLUS:
-            eatToken(PLUS);
-            break;
-        case MINUS:
-            eatToken(MINUS);
-            break;
-        case MUL:
-            eatToken(MUL);
-            break;
-        case DIV:
-            eatToken(DIV);
-            break;
-        default:
-            throwError();
-            break;
+        double result = 0;
+        TokenType last_token_type = INVALID;
+        while ((_current_token = getNextToken())._type != END) {
+            switch (_current_token._type) {
+                case INTEGER:
+                    if (last_token_type == INVALID) {
+                        result = _current_token._value;
+                    } else if (last_token_type == PLUS) {
+                        result += _current_token._value;
+                    } else if (last_token_type == MINUS) {
+                        result -= _current_token._value;
+                    } else {
+                        throwError();
+                    }
+                    break;
+                case PLUS:
+                case MINUS:
+                    last_token_type = _current_token._type;
+                    break;
+                default:
+                    throwError();
+                    break;
+            }
         }
-        auto right = _current_token;
-#ifdef DEBUG
-        std::cout << "right: " << right << std::endl;
-#endif
-        eatToken({INTEGER});
-        switch (op._type)
-        {
-        case PLUS:
-            return left._value + right._value;
-            break;
-        case MINUS:
-            return left._value - right._value;
-            break;
-        case MUL:
-            return 1.0 * left._value * right._value;
-            break;
-        case DIV:
-            return 1.0 * left._value / right._value;
-            break;
-        default:
-            throwError();
-            break;
-        }
-        return std::numeric_limits<double>::infinity();
+        return result;
     }
 };
 
