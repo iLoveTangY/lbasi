@@ -1,3 +1,8 @@
+/**
+ * 1. 绘制乘法和除法的语法图
+ * 2. 修改源码使之支持任意数量 term 的只包含乘除法的表达式
+ * 3. 使用任意你喜欢的语言来从头实现支持任意数量加减法表达式的解释器
+ */
 #include <iostream>
 #include <string>
 #include <exception>
@@ -112,18 +117,18 @@ class Interpreter {
    public:
     explicit Interpreter(std::string text) : _text(std::move(text)), _current_char(_text[0]) {}
 
-    // 语法分析器（parser）仅能处理正整数的加减法
+    // 语法分析器（parser）仅能处理正整数的乘除法
     double expr() {
         _current_token = getNextToken();
         double result = getTerm();
-        while (_current_token._type == PLUS or _current_token._type == MINUS) {
+        while (_current_token._type == MUL || _current_token._type == DIV) {
             auto token = _current_token;
-            if (token._type == PLUS) {
-                eatToken(PLUS);
-                result += getTerm();
-            } else if (token._type == MINUS) {
-                eatToken(MINUS);
-                result -= getTerm();
+            if (token._type == MUL) {
+                eatToken(MUL);
+                result *= getTerm();
+            } else if (token._type == DIV) {
+                eatToken(DIV);
+                result /= getTerm();
             }
         }
         return result;
