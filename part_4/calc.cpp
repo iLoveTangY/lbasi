@@ -1,3 +1,11 @@
+/**
+ * 1. 写出支持任意数量 + - * / 表达式的上下文无关语法
+ *      expr : addtion-expr
+ *      addition-expr : muliplication-expr ((PLUS | MINUS) mulitiplication-expr)
+ *      multiplication-expr : factor ((MUL | DIV) factor)*
+ *      factor : INTEGER
+ * 2. 用代码实现
+ */
 #include <iostream>
 #include <string>
 #include <exception>
