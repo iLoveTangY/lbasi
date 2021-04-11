@@ -104,7 +104,8 @@ class Lexer {
                 advance();
                 return Token(DIV);
             }
-            throwError("Syntax error: not suport char " + current_char_);
+
+            throwError(std::string("Syntax error: not suport char ") + (current_char_));
         }
         return Token(END);
     }
@@ -139,10 +140,33 @@ class Interpreter {
     }
 
    public:
-    // 计算一个表达式（expression）
-    // expr   : factor ((MUL | DIV) factor)*
-    // factor : INTEGER
+    // 加减乘除计算器
+    // expr : addtion-expr
+    // addition-expr : muliplication-expr ((PLUS | MINUS) mulitiplication-expr)
+    // multiplication-expr : factor ((MUL | DIV) factor)*
+    // factor : INTEGER 
     double expr() {
+        return additon_expr();
+    }
+
+    double additon_expr() {
+        double result =muliplication_expr();
+        while (current_token_.type_ == PLUS || current_token_.type_ == MINUS) {
+            auto token = current_token_;
+            if (token.type_ == PLUS) {
+                eatToken(PLUS);
+                result += muliplication_expr();
+            } else if (token.type_ == MINUS) {
+                eatToken(MINUS);
+                result -= muliplication_expr();
+            } else {
+                THROW_ERROR;
+            }
+        }
+        return result;
+    }
+
+    double muliplication_expr() {
         double result = factor();
         while (current_token_.type_ == MUL || current_token_.type_ == DIV) {
             auto token = current_token_;
