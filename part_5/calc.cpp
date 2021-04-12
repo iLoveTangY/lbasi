@@ -2,6 +2,10 @@
  * 1. 从头实现一个支持任意数量加减乘除表达式的计算器
  *      见 calc.ts
  * 2. 扩展当前程序来支持带有括号的表达式，例如：(7 + 3 * (10 / (12 / (3 + 1) - 1)))
+ *    语法：
+ *      expr: term ((PLUS | MINUS) term)*
+ *      term: factor ((MUL | DIV) factor)*
+ *      factor: (LP expr RP) | INTEGER
  */
 #include <iostream>
 #include <string>
@@ -12,7 +16,16 @@
 // #define DEBUG
 
 #define INVALID_CHAR 0
-enum TokenType { INTEGER, PLUS, MINUS, MUL, DIV, END, INVALID };
+enum TokenType { 
+                 INTEGER, // 正整数
+                 PLUS,   // "+"
+                 MINUS,  // "-"
+                 MUL,    // "*"
+                 DIV,    // "/"
+                 END,    // 结束
+                 LP,     // "("
+                 RP,     // ")"
+};
 
 class Token {
     friend std::ostream &operator<<(std::ostream &, const Token &);
@@ -101,6 +114,14 @@ class Lexer {
                 advance();
                 return Token(DIV);
             }
+            if (current_char_ == '(') {
+                advance();
+                return Token(LP);
+            }
+            if (current_char_ == ')') {
+                advance();
+                return Token(RP);
+            }
 
             throwError(std::string("Syntax error: not suport char ") + (current_char_));
         }
@@ -120,11 +141,19 @@ class Interpreter {
 #define THROW_ERROR throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": Ivalid syntax")
 
     // 返回当前 token 的 int 值
-    // factor : INTEGER
-    int factor() {
+    // factor : (LP expr RP) | INTEGER
+    double factor() {
         auto token = current_token_;
-        eatToken(INTEGER);
-        return token.value_;
+        if (token.type_ == LP) {
+            eatToken(LP);
+            auto result = expr();
+            eatToken(RP);
+            return result;
+        } else if (token.type_ == INTEGER) {
+            eatToken(INTEGER);
+            return token.value_;
+        }
+        THROW_ERROR;
     }
 
     // 确保当前 token 的 type 为指定的 token_type，并且获取下一个 token
