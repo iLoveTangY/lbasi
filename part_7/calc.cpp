@@ -1,9 +1,10 @@
-// @Author: tangyang.01@bytedance.com  
-// @Date: 2021-04-15 18:31:55 
+// @Author: tangyang.01@bytedance.com
+// @Date: 2021-04-15 18:31:55
 
 #include <iostream>
 #include <memory>
 #include <string>
+#include <limits>
 
 #define INVALID_CHAR 0
 enum TokenType {
@@ -39,13 +40,13 @@ class BinaryOpNode;
 class NumNode;
 
 class Visitor {
-public:
+   public:
     virtual double visit(const std::shared_ptr<BinaryOpNode> &node) = 0;
     virtual double visit(const std::shared_ptr<NumNode> &node) = 0;
 };
 
 class ASTNode {
-public:
+   public:
     virtual double visit(const std::shared_ptr<Visitor> &visitor) = 0;
 };
 
@@ -54,9 +55,7 @@ class BinaryOpNode : public ASTNode, public std::enable_shared_from_this<BinaryO
     BinaryOpNode(std::shared_ptr<ASTNode> left, Token op, std::shared_ptr<ASTNode> right)
         : left_(std::move(left)), op_(op), right_(std::move(right)) {}
 
-    double visit(const std::shared_ptr<Visitor> &visitor) override {
-        return visitor->visit(shared_from_this());
-    }
+    double visit(const std::shared_ptr<Visitor> &visitor) override { return visitor->visit(shared_from_this()); }
 
     std::shared_ptr<ASTNode> left_;
     std::shared_ptr<ASTNode> right_;
@@ -67,9 +66,7 @@ class NumNode : public ASTNode, public std::enable_shared_from_this<NumNode> {
    public:
     NumNode(Token token) : token_(token) { value_ = token.value_; }
 
-    double visit(const std::shared_ptr<Visitor> &visitor) override {
-        return visitor->visit(shared_from_this());
-    }
+    double visit(const std::shared_ptr<Visitor> &visitor) override { return visitor->visit(shared_from_this()); }
     Token token_;
     int value_;
 };
@@ -160,16 +157,12 @@ class Lexer {
 // 生成一颗 AST
 class Parser {
 #define THROW_ERROR throw std::runtime_error(std::string(__FILE__) + ":" + std::to_string(__LINE__) + ": Ivalid syntax")
-public:
-    explicit Parser(Lexer lexer) : lexer_(lexer) {
-        current_token_ = lexer_.getNextToken();
-    }
+   public:
+    explicit Parser(Lexer lexer) : lexer_(lexer) { current_token_ = lexer_.getNextToken(); }
 
-    std::shared_ptr<ASTNode> parse() {
-        return expr();
-    }
+    std::shared_ptr<ASTNode> parse() { return expr(); }
 
-private:
+   private:
     // 确保当前 token 的 type 为指定的 token_type，并且获取下一个 token
     void eatToken(const TokenType &type) {
         if (current_token_.type_ == type) {
@@ -231,9 +224,86 @@ private:
     Token current_token_;
 };
 
+// exercise 1: Write a translator (hint: node visitor) that takes as input an
+// arithmetic expression and prints it out in postfix notation,
+// also known as Reverse Polish Notation (RPN).
+// For example, if the input to the translator is the
+// expression (5 + 3) * 12 / 3 than the output should be 5 3 + 12 * 3 /.
+class RPNPrinter : public Visitor, public std::enable_shared_from_this<RPNPrinter> {
+   public:
+    explicit RPNPrinter(const Parser &parser) : parser_(parser) {}
+
+    void print() {
+        auto root_node = parser_.parse();
+        root_node->visit(shared_from_this());
+    }
+
+    double visit(const std::shared_ptr<BinaryOpNode> &node) override {
+        node->left_->visit(shared_from_this());
+        node->right_->visit(shared_from_this());
+
+        if (node->op_.type_ == PLUS) {
+            std::cout << " + ";
+        } else if (node->op_.type_ == MINUS) {
+            std::cout << " - ";
+        } else if (node->op_.type_ == MUL) {
+            std::cout << " * ";
+        } else {  // DIV
+            std::cout << " / ";
+        }
+        return 0.0;
+    }
+
+    double visit(const std::shared_ptr<NumNode> &node) override {
+        std::cout << " " << node->value_ << " ";
+        return 0.0;
+    }
+
+   private:
+    Parser parser_;
+};
+
+// exercise 2: Write a translator (node visitor) that takes as input an
+// arithmetic expression and prints it out in LISP style notation,
+// that is 2 + 3 would become (+ 2 3) and (2 + 3 * 5) would become (+ 2 (* 3 5)).
+class LispStylePrinter : public Visitor, public std::enable_shared_from_this<LispStylePrinter> {
+   public:
+    explicit LispStylePrinter(const Parser &parser) : parser_(parser) {}
+
+    void print() {
+        auto root_node = parser_.parse();
+        root_node->visit(shared_from_this());
+    }
+
+    double visit(const std::shared_ptr<BinaryOpNode> &node) override {
+        std::cout << "(";
+        if (node->op_.type_ == PLUS) {
+            std::cout << " + ";
+        } else if (node->op_.type_ == MINUS) {
+            std::cout << " - ";
+        } else if (node->op_.type_ == MUL) {
+            std::cout << " * ";
+        } else {  // DIV
+            std::cout << " / ";
+        }
+        node->left_->visit(shared_from_this());
+        node->right_->visit(shared_from_this());
+
+        std::cout << ")";
+        return 0.0;
+    }
+
+    double visit(const std::shared_ptr<NumNode> &node) override {
+        std::cout << " " << node->value_ << " ";
+        return 0.0;
+    }
+
+   private:
+    Parser parser_;
+};
 
 class Interpreter : public Visitor, public std::enable_shared_from_this<Interpreter> {
-public:
+   public:
     explicit Interpreter(const Parser &parser) : parser_(parser) {}
 
     double interpreter() {
@@ -256,14 +326,11 @@ public:
         } else {  // DIV
             return (node->left_->visit(this_ptr) / node->right_->visit(this_ptr));
         }
-    } 
-
-    double visit(const std::shared_ptr<NumNode> &node) override {
-        return node->value_;
     }
 
-private:
+    double visit(const std::shared_ptr<NumNode> &node) override { return node->value_; }
 
+   private:
     Parser parser_;
 };
 
@@ -276,6 +343,14 @@ int main() {
         }
         auto lexer = Lexer(text);
         auto parser = Parser(lexer);
+        auto rpn_printer = std::make_shared<RPNPrinter>(parser);
+        std::cout << "RPN: ";
+        rpn_printer->print();
+        std::cout << std::endl;
+        auto lisp_style_printer = std::make_shared<LispStylePrinter>(parser);
+        std::cout << "LispStyle: ";
+        lisp_style_printer->print();
+        std::cout << std::endl;
         auto interpreter = std::make_shared<Interpreter>(parser);
         std::cout << interpreter->interpreter() << std::endl;
         std::cout << "calc> ";
