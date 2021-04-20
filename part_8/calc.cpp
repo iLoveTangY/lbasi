@@ -38,21 +38,25 @@ std::ostream &operator<<(std::ostream &out, const Token &token) {
 
 class BinaryOpNode;
 class NumNode;
+class UnaryOpNode;
 
 class Visitor {
    public:
     virtual double visit(const std::shared_ptr<BinaryOpNode> &node) = 0;
     virtual double visit(const std::shared_ptr<NumNode> &node) = 0;
+    virtual double visit(const std::shared_ptr<UnaryOpNode> &node) = 0;
 };
 
-class ASTNode : public std::enable_shared_from_this<ASTNode> {
+class ASTNode {
    public:
-    virtual double visit(const std::shared_ptr<Visitor> &visitor) { return visitor->visit(shared_from_this()); };
+    virtual double visit(const std::shared_ptr<Visitor> &visitor) = 0;
 };
 
 class UnaryOpNode : public ASTNode, public std::enable_shared_from_this<UnaryOpNode> {
-    public:
-    explicit UnaryOpNode(const Token &op, const std::shared_ptr<ASTNode> &expr) : token_(token), expr_(std::move(expr)) {}
+   public:
+    UnaryOpNode(const Token &op, const std::shared_ptr<ASTNode> &expr) : token_(op), expr_(std::move(expr)) {}
+
+    double visit(const std::shared_ptr<Visitor> &visitor) override { return visitor->visit(shared_from_this()); }
 
     Token token_;
     std::shared_ptr<ASTNode> expr_;
@@ -184,10 +188,16 @@ class Parser {
         THROW_ERROR;
     }
 
-    // factor: INTEGER | (LP expr RP)
+    // factor: (PLUS | MINUS) factor | INTEGER | (LP expr RP)
     std::shared_ptr<ASTNode> factor() {
         auto token = current_token_;
-        if (token.type_ == INTEGER) {
+        if (token.type_ == PLUS) {
+            eatToken(PLUS);
+            return std::make_shared<UnaryOpNode>(token, factor());
+        } else if (token.type_ == MINUS) {
+            eatToken(MINUS);
+            return std::make_shared<UnaryOpNode>(token, factor());
+        } else if (token.type_ == INTEGER) {
             eatToken(INTEGER);
             return std::make_shared<NumNode>(token);
         } else if (token.type_ == LP) {
@@ -236,84 +246,6 @@ class Parser {
     Token current_token_;
 };
 
-// exercise 1: Write a translator (hint: node visitor) that takes as input an
-// arithmetic expression and prints it out in postfix notation,
-// also known as Reverse Polish Notation (RPN).
-// For example, if the input to the translator is the
-// expression (5 + 3) * 12 / 3 than the output should be 5 3 + 12 * 3 /.
-class RPNPrinter : public Visitor, public std::enable_shared_from_this<RPNPrinter> {
-   public:
-    explicit RPNPrinter(const Parser &parser) : parser_(parser) {}
-
-    void print() {
-        auto root_node = parser_.parse();
-        root_node->visit(shared_from_this());
-    }
-
-    double visit(const std::shared_ptr<BinaryOpNode> &node) override {
-        node->left_->visit(shared_from_this());
-        node->right_->visit(shared_from_this());
-
-        if (node->op_.type_ == PLUS) {
-            std::cout << " + ";
-        } else if (node->op_.type_ == MINUS) {
-            std::cout << " - ";
-        } else if (node->op_.type_ == MUL) {
-            std::cout << " * ";
-        } else {  // DIV
-            std::cout << " / ";
-        }
-        return 0.0;
-    }
-
-    double visit(const std::shared_ptr<NumNode> &node) override {
-        std::cout << " " << node->value_ << " ";
-        return 0.0;
-    }
-
-   private:
-    Parser parser_;
-};
-
-// exercise 2: Write a translator (node visitor) that takes as input an
-// arithmetic expression and prints it out in LISP style notation,
-// that is 2 + 3 would become (+ 2 3) and (2 + 3 * 5) would become (+ 2 (* 3 5)).
-class LispStylePrinter : public Visitor, public std::enable_shared_from_this<LispStylePrinter> {
-   public:
-    explicit LispStylePrinter(const Parser &parser) : parser_(parser) {}
-
-    void print() {
-        auto root_node = parser_.parse();
-        root_node->visit(shared_from_this());
-    }
-
-    double visit(const std::shared_ptr<BinaryOpNode> &node) override {
-        std::cout << "(";
-        if (node->op_.type_ == PLUS) {
-            std::cout << " + ";
-        } else if (node->op_.type_ == MINUS) {
-            std::cout << " - ";
-        } else if (node->op_.type_ == MUL) {
-            std::cout << " * ";
-        } else {  // DIV
-            std::cout << " / ";
-        }
-        node->left_->visit(shared_from_this());
-        node->right_->visit(shared_from_this());
-
-        std::cout << ")";
-        return 0.0;
-    }
-
-    double visit(const std::shared_ptr<NumNode> &node) override {
-        std::cout << " " << node->value_ << " ";
-        return 0.0;
-    }
-
-   private:
-    Parser parser_;
-};
-
 class Interpreter : public Visitor, public std::enable_shared_from_this<Interpreter> {
    public:
     explicit Interpreter(const Parser &parser) : parser_(parser) {}
@@ -342,6 +274,16 @@ class Interpreter : public Visitor, public std::enable_shared_from_this<Interpre
 
     double visit(const std::shared_ptr<NumNode> &node) override { return node->value_; }
 
+    double visit(const std::shared_ptr<UnaryOpNode> &node) override {
+        auto op = node->token_.type_;
+        auto value = node->expr_->visit(shared_from_this());
+        if (op == PLUS) {
+            return +value;
+        } else {
+            return -value;
+        }
+    }
+
    private:
     Parser parser_;
 };
@@ -355,14 +297,6 @@ int main() {
         }
         auto lexer = Lexer(text);
         auto parser = Parser(lexer);
-        auto rpn_printer = std::make_shared<RPNPrinter>(parser);
-        std::cout << "RPN: ";
-        rpn_printer->print();
-        std::cout << std::endl;
-        auto lisp_style_printer = std::make_shared<LispStylePrinter>(parser);
-        std::cout << "LispStyle: ";
-        lisp_style_printer->print();
-        std::cout << std::endl;
         auto interpreter = std::make_shared<Interpreter>(parser);
         std::cout << interpreter->interpreter() << std::endl;
         std::cout << "calc> ";
