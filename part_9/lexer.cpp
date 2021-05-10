@@ -1,7 +1,15 @@
 #include "lexer.hpp"
 
-const std::unordered_map<std::string, Token> Lexer::reserved_keywords = {{"BEGIN", Token(BEGIN, "BEGIN")},
-                                                                         {"END", Token(END, "END")}};
+#include <algorithm>
+
+static std::string toUpper(std::string str) {
+    std::string ret = std::move(str);
+    std::transform(ret.begin(), ret.end(), ret.begin(), ::toupper);
+    return ret;
+}
+
+const std::unordered_map<std::string, Token> Lexer::reserved_keywords = {
+    {"BEGIN", Token(BEGIN, "BEGIN")}, {"END", Token(END, "END")}, {"DIV", Token(DIV, "DIV")}};
 // 更新 current char
 void Lexer::advance(unsigned int step) {
     pos_ += step;
@@ -21,10 +29,13 @@ void Lexer::skipWhitespace() {
 
 Token Lexer::id() {
     std::string result = "";
-    while (isalnum(current_char_)) {
+    // 数字、字母、下划线
+    while (isalnum(current_char_) || '_' == current_char_) {
         result += current_char_;
         advance();
     }
+    // 大小写不敏感
+    result = toUpper(result);
     auto it = reserved_keywords.find(result);
     if (it != reserved_keywords.end()) {
         return it->second;
@@ -58,7 +69,7 @@ Token Lexer::getNextToken() {
             skipWhitespace();
             continue;
         }
-        if (isalpha(current_char_)) {
+        if (isalpha(current_char_) || '_' == current_char_) {
             return id();
         }
         if (current_char_ == ':' && peek() == '=') {

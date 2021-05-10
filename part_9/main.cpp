@@ -42,10 +42,12 @@ int main() {
     BEGIN
         BEGIN
             number := 2;
-            a := number;
-            b := 10 * a + 10 * number / 4;
+            a := NumBer;
+            b := 10 * a + 10 * NUMBER / 4;
             c := a -- b;
-        END;
+            d := b div 5;
+            _num := 5;
+        end;
         x := 11;
     END.
     )");

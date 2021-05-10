@@ -12,13 +12,13 @@ class Interpreter : public Visitor, public std::enable_shared_from_this<Interpre
 
     double calculate(const std::shared_ptr<ASTNode> &node);
 
-    void printGlobalScope(); 
+    void printGlobalScope();
 
     void interpret();
 
     void visit(const std::shared_ptr<BinaryOpNode> &node) override;
 
-    void visit(const std::shared_ptr<NumNode> &node) override; 
+    void visit(const std::shared_ptr<NumNode> &node) override;
 
     void visit(const std::shared_ptr<UnaryOpNode> &node) override;
 
