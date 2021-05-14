@@ -32,8 +32,11 @@ std::ostream &operator<<(std::ostream &out, const TokenType &type) {
         case MUL:
             out << "MUL";
             break;
-        case DIV:
+        case INTEGER_DIV:
             out << "DIV";
+            break;
+        case FLOAT_DIV:
+            out << "/";
             break;
         case END_OF_FILE:
             out << "EOF";

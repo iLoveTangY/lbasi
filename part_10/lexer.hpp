@@ -28,13 +28,16 @@ class Lexer {
     // 更新 current char
     inline void advance(unsigned int step = 1);
 
+    // 跳过注释
+    void skipComment();
+
     // 跳过空白字符
     void skipWhitespace();
 
     Token id();
 
-    // 从输入中获取一个整数（可能有多位）
-    int integer();
+    // 从输入中获取一个实数或者整数（可能有多位）
+    Token number();
 
     char peek();
 

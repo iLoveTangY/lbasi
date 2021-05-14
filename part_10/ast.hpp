@@ -14,6 +14,10 @@ class CompoundNode;
 class AssignNode;
 class VarNode;
 class NoOpNode;
+class ProgramNode;
+class BlockNode;
+class VarDeclNode;
+class TypeNode;
 
 class Visitor {
    public:
@@ -24,6 +28,10 @@ class Visitor {
     virtual void visit(const std::shared_ptr<AssignNode> &node) = 0;
     virtual void visit(const std::shared_ptr<VarNode> &node) = 0;
     virtual void visit(const std::shared_ptr<NoOpNode> &node) = 0;
+    virtual void visit(const std::shared_ptr<ProgramNode> &node) = 0;
+    virtual void visit(const std::shared_ptr<BlockNode> &node) = 0;
+    virtual void visit(const std::shared_ptr<VarDeclNode> &node) = 0;
+    virtual void visit(const std::shared_ptr<TypeNode> &node) = 0; 
 };
 
 class ASTNode {
@@ -92,5 +100,26 @@ class NumNode : public ASTNode, public std::enable_shared_from_this<NumNode> {
     Token token_;
     int value_;
 };
+
+class ProgramNode : public ASTNode, public std::enable_shared_from_this<ProgramNode> {
+    public:
+    ProgramNode(std::string name, std::shared_ptr<BlockNode> block) : name_(std::move(name)), block_(block) {}
+
+    void visit(const std::shared_ptr<Visitor> &visitor) override { visitor->visit(shared_from_this()); }
+
+    std::string name_;
+    std::shared_ptr<BlockNode> block_;
+};
+
+class BlockNode : public ASTNode, public std::enable_shared_from_this<BlockNode> {
+public:
+    std::shared_ptr<CompoundNode> compund_statement_;
+    
+};
+
+class VarDeclNode : public ASTNode, public std::enable_shared_from_this<VarDeclNode> {
+    public:
+    std::shared_ptr
+}
 
 #endif

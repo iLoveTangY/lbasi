@@ -8,8 +8,12 @@ static std::string toUpper(std::string str) {
     return ret;
 }
 
+// pascal 中的所有关键字
 const std::unordered_map<std::string, Token> Lexer::reserved_keywords = {
-    {"BEGIN", Token(BEGIN, "BEGIN")}, {"END", Token(END, "END")}, {"DIV", Token(DIV, "DIV")}};
+    {"BEGIN", Token(BEGIN, "BEGIN")}, {"END", Token(END, "END")},         {"PROGRAM", Token(PROGRAM, "PROGRAM")},
+    {"VAR", Token(VAR, "VAR")},       {"DIV", Token(INTEGER_DIV, "DIV")}, {"INTEGER", Token(INTEGER, "INTEGER")},
+    {"REAL", Token(REAL, "REAL")},
+};
 // 更新 current char
 void Lexer::advance(unsigned int step) {
     pos_ += step;
@@ -18,6 +22,13 @@ void Lexer::advance(unsigned int step) {
     } else {
         current_char_ = text_[pos_];
     }
+}
+
+void Lexer::skipComment() {
+    while (current_char_ != '}') {
+        advance();
+    }
+    advance();  // 跳过最后的花括号
 }
 
 // 跳过空白字符
@@ -43,14 +54,24 @@ Token Lexer::id() {
     return Token(ID, result);
 }
 
-// 从输入中获取一个整数（可能有多位）
-int Lexer::integer() {
-    int result = 0;
+Token Lexer::number() {
+    std::string result = "";
     while (current_char_ != INVALID_CHAR && isdigit(current_char_)) {
-        result = result * 10 + current_char_ - '0';
+        result += current_char_;
         advance();
     }
-    return result;
+    if (current_char_ == '.') {
+        result += current_char_;
+        advance();
+
+        while (current_char_ != INVALID_CHAR && isdigit(current_char_)) {
+            result += current_char_;
+            advance();
+        }
+        return Token(REAL_CONST, std::stof(result));
+    } else {
+        return Token(INTEGER_CONST, std::stoi(result));
+    }
 }
 
 char Lexer::peek() {
@@ -69,12 +90,26 @@ Token Lexer::getNextToken() {
             skipWhitespace();
             continue;
         }
+        if (current_char_ == '{') {
+            advance();
+            skipComment();
+            continue;
+        }
         if (isalpha(current_char_) || '_' == current_char_) {
             return id();
         }
         if (current_char_ == ':' && peek() == '=') {
             advance(2);
             return Token(ASSIGN, ":=");
+        }
+        // COLON 必须在 ASSIGN 之后判断
+        if (current_char_ == ':') {
+            advance();
+            return Token(COLON, ":");
+        }
+        if (current_char_ == ',') {
+            advance();
+            return Token(COMMA, ",");
         }
         if (current_char_ == ';') {
             advance();
@@ -85,7 +120,7 @@ Token Lexer::getNextToken() {
             return Token(DOT, ".");
         }
         if (isdigit(current_char_)) {
-            return Token(INTEGER, integer());
+            return number();
         }
         if (current_char_ == '+') {
             advance();
@@ -101,7 +136,7 @@ Token Lexer::getNextToken() {
         }
         if (current_char_ == '/') {
             advance();
-            return Token(DIV, "/");
+            return Token(FLOAT_DIV, "/");
         }
         if (current_char_ == '(') {
             advance();
