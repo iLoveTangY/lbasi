@@ -16,6 +16,14 @@ class Interpreter : public Visitor, public std::enable_shared_from_this<Interpre
 
     void interpret();
 
+    void visit(const std::shared_ptr<ProgramNode> &node) override;
+
+    void visit(const std::shared_ptr<BlockNode> &node) override;
+
+    void visit(const std::shared_ptr<VarDeclNode> &node) override;
+
+    void visit(const std::shared_ptr<TypeNode> &node) override;
+
     void visit(const std::shared_ptr<BinaryOpNode> &node) override;
 
     void visit(const std::shared_ptr<NumNode> &node) override;

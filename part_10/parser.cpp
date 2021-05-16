@@ -10,10 +10,22 @@ std::shared_ptr<ASTNode> Parser::parse() {
     return node;
 }
 
-// program : compund_statement DOT
-std::shared_ptr<ASTNode> Parser::program() {
-    auto node = compound_statement();
+// program : PROGRAM variable SEMI block DOT
+std::shared_ptr<ProgramNode> Parser::program() {
+    eatToken(PROGRAM);
+    auto var_node = variable();
+    auto program_name = var_node->value_;
+    eatToken(SEMI);
+    auto block_node = block();
+    auto program_node = std::make_shared<ProgramNode>(program_name, block_node);
     eatToken(DOT);
+    return program_node;
+}
+
+std::shared_ptr<BlockNode> Parser::block() {
+    auto declarations_nodes = declaration();
+    auto compund_statement_node = compound_statement();
+    auto node = std::make_shared<BlockNode>(declarations_nodes, compund_statement_node);
     return node;
 }
 
@@ -24,6 +36,55 @@ std::shared_ptr<CompoundNode> Parser::compound_statement() {
     eatToken(END);
     auto root = std::make_shared<CompoundNode>(nodes);
     return root;
+}
+
+// declarations : VAR (variable_delaration SEMI)+
+//              | empty
+std::vector<std::shared_ptr<VarDeclNode>> Parser::declaration() {
+    std::vector<std::shared_ptr<VarDeclNode>> declarations;
+    if (current_token_.type_ == VAR) {
+        eatToken(VAR);
+        while (current_token_.type_ == ID) {
+            auto var_decl = variable_declaration();
+            declarations.insert(declarations.end(), var_decl.begin(), var_decl.end());
+            eatToken(SEMI);
+        }
+    }
+    return declarations;
+}
+
+// variable_declaration : ID (COMMA ID)* COLON type_spec
+std::vector<std::shared_ptr<VarDeclNode>> Parser::variable_declaration() {
+    std::vector<std::shared_ptr<VarNode>> var_nodes;
+    var_nodes.emplace_back(std::make_shared<VarNode>(current_token_));
+    eatToken(ID);
+
+    while (current_token_.type_ == COMMA) {
+        eatToken(COMMA);
+        var_nodes.emplace_back(std::make_shared<VarNode>(current_token_));
+        eatToken(ID);
+    }
+
+    eatToken(COLON);
+
+    auto type_node = type_spec();
+    std::vector<std::shared_ptr<VarDeclNode>> var_declarations;
+    for (auto &&var_node : var_nodes) {
+        var_declarations.push_back(std::make_shared<VarDeclNode>(var_node, type_node));
+    }
+    return var_declarations;
+}
+
+// type_spec : INTEGER
+//           | REAL
+std::shared_ptr<TypeNode> Parser::type_spec() {
+    auto token = current_token_;
+    if (current_token_.type_ == INTEGER) {
+        eatToken(INTEGER);
+    } else {
+        eatToken(REAL);
+    }
+    return std::make_shared<TypeNode>(token);
 }
 
 // statement_list: statement
@@ -85,7 +146,7 @@ void Parser::eatToken(const TokenType &type) {
     THROW_ERROR;
 }
 
-// factor: (PLUS | MINUS) factor | INTEGER | (LP expr RP) | variable
+// factor: (PLUS | MINUS) factor | INTEGER_CONST | REAL_CONST | (LP expr RP) | variable
 std::shared_ptr<ASTNode> Parser::factor() {
     auto token = current_token_;
     if (token.type_ == PLUS) {
@@ -94,8 +155,11 @@ std::shared_ptr<ASTNode> Parser::factor() {
     } else if (token.type_ == MINUS) {
         eatToken(MINUS);
         return std::make_shared<UnaryOpNode>(token, factor());
-    } else if (token.type_ == INTEGER) {
-        eatToken(INTEGER);
+    } else if (token.type_ == INTEGER_CONST) {
+        eatToken(INTEGER_CONST);
+        return std::make_shared<NumNode>(token);
+    } else if (token.type_ == REAL_CONST) {
+        eatToken(REAL_CONST);
         return std::make_shared<NumNode>(token);
     } else if (token.type_ == LP) {
         eatToken(LP);
@@ -109,15 +173,17 @@ std::shared_ptr<ASTNode> Parser::factor() {
     return nullptr;
 }
 
-// term: factor ((MUL | DIV) factor)*
+// term : factor ((MUL | INTEGER_DIV | FLOAT_DIV) factor)*
 std::shared_ptr<ASTNode> Parser::term() {
     auto node = factor();
-    while (current_token_.type_ == MUL || current_token_.type_ == DIV) {
+    while (current_token_.type_ == MUL || current_token_.type_ == INTEGER_DIV || current_token_.type_ == FLOAT_DIV) {
         auto token = current_token_;
         if (token.type_ == MUL) {
             eatToken(MUL);
-        } else if (token.type_ == DIV) {
-            eatToken(DIV);
+        } else if (token.type_ == INTEGER_DIV) {
+            eatToken(INTEGER_DIV);
+        } else if (token.type_ == FLOAT_DIV) {
+            eatToken(FLOAT_DIV);
         }
         node = std::make_shared<BinaryOpNode>(node, token, factor());
     }

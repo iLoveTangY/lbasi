@@ -21,6 +21,26 @@ void Interpreter::interpret() {
     root_node->visit(shared_from_this());
 }
 
+void Interpreter::visit(const std::shared_ptr<ProgramNode> &node) {
+    std::cout << node->name_ << ": " << std::endl;
+    node->block_->visit(shared_from_this());
+}
+
+void Interpreter::visit(const std::shared_ptr<BlockNode> &node) {
+    for (auto && declaration : node->declarations_) {
+        declaration->visit(shared_from_this());
+    }
+    node->compound_statement_->visit(shared_from_this());
+}
+
+void Interpreter::visit(const std::shared_ptr<VarDeclNode> &node) {
+    // TODO
+}
+
+void Interpreter::visit(const std::shared_ptr<TypeNode> &node) {
+  // TODO
+}
+
 void Interpreter::visit(const std::shared_ptr<BinaryOpNode> &node) {
     auto this_ptr = shared_from_this();
     if (node->op_.type_ == PLUS) {
@@ -29,7 +49,9 @@ void Interpreter::visit(const std::shared_ptr<BinaryOpNode> &node) {
         expr_value_ = calculate(node->left_) - calculate(node->right_);
     } else if (node->op_.type_ == MUL) {
         expr_value_ = calculate(node->left_) * calculate(node->right_);
-    } else {  // DIV
+    } else if (node->op_.type_ == INTEGER_DIV) {  // 整数除法
+        expr_value_ = static_cast<int>(calculate(node->left_)) / static_cast<int>(calculate(node->right_));
+    } else if (node->op_.type_ == FLOAT_DIV) {
         expr_value_ = calculate(node->left_) / calculate(node->right_);
     }
 }

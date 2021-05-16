@@ -31,7 +31,7 @@ class Visitor {
     virtual void visit(const std::shared_ptr<ProgramNode> &node) = 0;
     virtual void visit(const std::shared_ptr<BlockNode> &node) = 0;
     virtual void visit(const std::shared_ptr<VarDeclNode> &node) = 0;
-    virtual void visit(const std::shared_ptr<TypeNode> &node) = 0; 
+    virtual void visit(const std::shared_ptr<TypeNode> &node) = 0;
 };
 
 class ASTNode {
@@ -102,7 +102,7 @@ class NumNode : public ASTNode, public std::enable_shared_from_this<NumNode> {
 };
 
 class ProgramNode : public ASTNode, public std::enable_shared_from_this<ProgramNode> {
-    public:
+   public:
     ProgramNode(std::string name, std::shared_ptr<BlockNode> block) : name_(std::move(name)), block_(block) {}
 
     void visit(const std::shared_ptr<Visitor> &visitor) override { visitor->visit(shared_from_this()); }
@@ -112,14 +112,27 @@ class ProgramNode : public ASTNode, public std::enable_shared_from_this<ProgramN
 };
 
 class BlockNode : public ASTNode, public std::enable_shared_from_this<BlockNode> {
-public:
-    std::shared_ptr<CompoundNode> compund_statement_;
-    
+   public:
+   BlockNode(std::vector<std::shared_ptr<VarDeclNode>> declarations, std::shared_ptr<CompoundNode> compound_statement) : declarations_(declarations), compound_statement_(compound_statement) {}
+   void visit(const std::shared_ptr<Visitor> &visitor) override { visitor->visit(shared_from_this()); }
+    std::shared_ptr<CompoundNode> compound_statement_;
+    std::vector<std::shared_ptr<VarDeclNode>> declarations_;
 };
 
 class VarDeclNode : public ASTNode, public std::enable_shared_from_this<VarDeclNode> {
+   public:
+    VarDeclNode(std::shared_ptr<VarNode> var_node, std::shared_ptr<TypeNode> type_node)
+        : var_node_(var_node), type_node_(type_node) {}
+    void visit(const std::shared_ptr<Visitor> &visitor) override { visitor->visit(shared_from_this()); }
+    std::shared_ptr<VarNode> var_node_;
+    std::shared_ptr<TypeNode> type_node_;
+};
+
+class TypeNode : public ASTNode, public std::enable_shared_from_this<TypeNode> {
     public:
-    std::shared_ptr
-}
+    TypeNode(Token token) : token_(token) {}
+    void visit(const std::shared_ptr<Visitor> &visitor) override { visitor->visit(shared_from_this()); }
+    Token token_;
+};
 
 #endif

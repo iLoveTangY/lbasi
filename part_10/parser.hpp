@@ -12,10 +12,24 @@ class Parser {
 
    private:
     // program : compund_statement DOT
-    std::shared_ptr<ASTNode> program();
+    std::shared_ptr<ProgramNode> program();
+
+    // block : declarations compund_statement
+    std::shared_ptr<BlockNode> block();
 
     // compound_statement : BEGIN statement_list END
     std::shared_ptr<CompoundNode> compound_statement();
+
+    // declarations : VAR (variable_delaration SEMI)+
+    //              | empty
+    std::vector<std::shared_ptr<VarDeclNode>> declaration();
+
+    // variable_declaration : ID (COMMA ID)* COLON type_spec
+    std::vector<std::shared_ptr<VarDeclNode>> variable_declaration();
+
+    // type_spec : INTEGER
+    //           | REAL
+    std::shared_ptr<TypeNode> type_spec();
 
     // statement_list: statement
     //               | statement SEMI statement_list
