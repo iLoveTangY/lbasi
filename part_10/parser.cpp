@@ -56,13 +56,11 @@ std::vector<std::shared_ptr<VarDeclNode>> Parser::declaration() {
 // variable_declaration : ID (COMMA ID)* COLON type_spec
 std::vector<std::shared_ptr<VarDeclNode>> Parser::variable_declaration() {
     std::vector<std::shared_ptr<VarNode>> var_nodes;
-    var_nodes.emplace_back(std::make_shared<VarNode>(current_token_));
-    eatToken(ID);
+    var_nodes.emplace_back(variable());
 
     while (current_token_.type_ == COMMA) {
         eatToken(COMMA);
-        var_nodes.emplace_back(std::make_shared<VarNode>(current_token_));
-        eatToken(ID);
+        var_nodes.emplace_back(variable());
     }
 
     eatToken(COLON);

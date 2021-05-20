@@ -8,7 +8,7 @@
 //         declaritions : VAR (variable_declarition SEMI)+
 //                      | empty
 
-// variable_declarition : ID (COMMA ID)* COLON type_spec
+// variable_declarition : variable (COMMA variable)* COLON type_spec
 
 //            type_spec : INTEGER | REAL
 

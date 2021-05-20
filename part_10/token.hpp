@@ -13,7 +13,7 @@ enum TokenType {
     ASSIGN,       // ":="
     SEMI,         // ";"
     ID,           // identifier
-    INTEGER,      // 正整数
+    INTEGER,      // 正整数类型
     PLUS,         // "+"
     MINUS,        // "-"
     MUL,          // "*"
