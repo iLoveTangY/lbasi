@@ -6,7 +6,7 @@ ColumnLimit: 128
 ---
 Language: Cpp
 AllowShortFunctionsOnASingleLine: Inline
-SortIncludes: false
+SortIncludes: true 
 SpaceAfterCStyleCast: true
 ---
 Language: ObjC
